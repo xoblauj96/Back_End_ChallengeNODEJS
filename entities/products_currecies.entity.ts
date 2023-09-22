@@ -2,7 +2,7 @@ import { BuildOptions, Model, DataTypes, ModelAttributes, Sequelize } from "sequ
 
 export interface Products_CurrenciesAttributes {
     id?: string;
-    producId?: string;
+    tbProductId?: string;
     currenciesId?: string;
 
 }
@@ -25,7 +25,7 @@ export const Products_CurrenciesFactory = (name: string, sequelize: Sequelize): 
             autoIncrementIdentity: true,
             allowNull: false
         },
-        producId: {
+        tbProductId: {
             type: DataTypes.INTEGER
         },
         currenciesId: {

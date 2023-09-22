@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import { APIService } from "../services/api.service";
 import { UserModel } from "../entities/user.entity";
-import { dbconnection, productsEntity, userEntity } from "../entities";
+import { dbconnection, productsEntity, products_CurrenciesEntity, userEntity } from "../entities";
 import { ProductModel } from "../entities/products.entiy";
 import { Op } from "sequelize";
 let allowedUpdate = ['productName', 'price']
@@ -48,7 +48,8 @@ export class ProductController {
                         await transaction.rollback();
                         res.send(APIService.errRes(`product '${product.productName}'  exist`));
                     } else {
-                        productsEntity.create(product).then(r => {
+                        productsEntity.create(product).then(async r => {
+                            await transaction.commit();
                             res.send(APIService.okRes(r, 'create Ok'));
                         }).catch(e => {
                             res.send(APIService.errRes(e))
@@ -67,10 +68,14 @@ export class ProductController {
         try {
             userEntity.hasMany(productsEntity);
             productsEntity.belongsTo(userEntity);
+
+            productsEntity.hasMany(products_CurrenciesEntity);
+            products_CurrenciesEntity.belongsTo(productsEntity);
+
             const limit = req.query.limit ? Number(req.query.limit) : 5;
             const skip = req.query.skip ? Number(req.query.skip) : 0;
             productsEntity.count().then(row => {
-                productsEntity.findAll({ limit, offset: limit * skip, order: [["id", "desc"]], include: [userEntity] }).then(r => {
+                productsEntity.findAll({ limit, offset: limit * skip, order: [["id", "desc"]], include: [userEntity,products_CurrenciesEntity] }).then(r => {
                     res.send(APIService.okRes(r, `All Data ${row} rows`));
                 })
 
@@ -109,9 +114,12 @@ export class ProductController {
 
     static deleteProuct(req: Request, res: Response) {
         try {
-            let product = req.body as ProductModel;
-            productsEntity.findOne({ where: { tbUserId: product.tbUserId } }).then(r => {
-                if (r) {
+            let product: ProductModel = req.body as ProductModel;
+            let check: boolean = ProductController.checkProductIdUserId(product, res);
+            if (check) return;
+
+            productsEntity.findOne({ where: { tbUserId: product?.tbUserId, id: product?.id } }).then(rs => {
+                if (rs) {
                     productsEntity.findByPk(product.id).then(r => {
                         if (r) {
                             let x = r?.destroy();
@@ -123,19 +131,22 @@ export class ProductController {
                 } else {
                     res.send(APIService.errRes([], "you do not have permision."))
                 }
+            }).catch((e) => {
+                res.send(APIService.errRes(e, "Error Exception"))
             })
 
+
         } catch (error) {
-            console.log(error);
-
+            console.log("===========", error);
+            res.send(APIService.errRes(error, "Error."))
         }
-    }
 
+    }
 
     static updateProduct(req: Request, res: Response) {
         try {
             let product = req.body as ProductModel;
-            productsEntity.findOne({ where: { tbUserId: product.tbUserId } }).then(rr => {
+            productsEntity.findOne({ where: { tbUserId: product.tbUserId, id: product?.id } }).then(rr => {
                 if (rr) {
                     productsEntity.findByPk(product.id).then(async r => {
                         if (r) {
@@ -163,6 +174,15 @@ export class ProductController {
         }
     }
 
+    static checkProductIdUserId(product: ProductModel, res: Response): boolean {
+        if (product?.tbUserId == undefined || product.tbUserId.toString() == '') {
+            res.send(APIService.errRes([], "Please input user id")); return true;
+        }
+        if (product?.id == undefined || product?.id.toString() == '') {
+            res.send(APIService.errRes([], "Please check product id")); return true;
+        }
+        return false;
+    }
 
 }
 

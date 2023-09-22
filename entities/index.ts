@@ -25,7 +25,7 @@ export const productsEntity =ProductFactory(EntityPrifix.Products,dbconnection);
 export const products_CurrenciesEntity = Products_CurrenciesFactory(EntityPrifix.Products_Currencies,dbconnection);
 export const currenciesEntity = CurrenciesFactory(EntityPrifix.Currencies,dbconnection);
 
-// userEntity.sync({force:true});
-// productsEntity.sync({force:true});
-// products_CurrenciesEntity.sync({force:true});
-// currenciesEntity.sync({force:true});
+userEntity.sync({force:true});
+productsEntity.sync({force:true});
+products_CurrenciesEntity.sync({force:true});
+currenciesEntity.sync({force:true});
